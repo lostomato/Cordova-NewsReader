@@ -26,7 +26,7 @@ $.getJSON('<api address>', function (data) {
                     myString = myString.replace("\\n", "");
                     myString = myString.replace("\r\n", "");
                     myString = myString.replace("\\r\\n", "");
-                    output.push('<li style="white-space:pre-wrap;">' + myString + '<a href="#" class="ui-btn ui-corner-all ui-icon-heart ui-btn-icon-notext">图标</a></li>');
+                    output.push('<li style="white-space:pre-wrap;">' + myString + '<a href="#" save="false" class="ui-btn ui-corner-all ui-icon-heart ui-btn-icon-notext">图标</a></li>');
                 }
                 storage.clear();
                 storage.setItem("maxid",data.maxid);
@@ -38,8 +38,18 @@ $.getJSON('<api address>', function (data) {
             $(output.join('') ).appendTo("#thelist");
             $("#thelist").trigger("create");
             $("a.ui-icon-heart").on("tap",function(){
-                $(this).css("background-color","red");
-				$(this).css("color","red");
+				alert($(this).attr("save"));
+				if ($(this).attr("save")=="false"){
+					$(this).css("background-color","red");
+					$(this).css("color","red");
+					$(this).attr("save","true");
+					return;
+				}
+				if($(this).attr("save")=="true"){
+					$(this).css("background-color","yellow");
+					$(this).css("color","yellow");
+					$(this).attr("save","false");
+				}
             });
         });        
     }			
