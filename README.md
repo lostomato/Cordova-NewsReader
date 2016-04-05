@@ -2,6 +2,9 @@
 This is a Web App which created by HTML5, Jquery, JQuery Mobile and also could be also targeted to cross platform by Cordova.
 
 ## Screenshot
+![Alt text](/path/to/img.jpg)
+![Alt text](/path/to/img.jpg)
+![Alt text](/path/to/img.jpg)
 
 ## Structure
 It has a Client-Server model.
@@ -9,8 +12,8 @@ Client: Web App
 Server: Mysql database, Python Crawler and Server API by php 
 
 ## Used Plugins
-* Iscroller
-* Calender
+* [Iscroller 4](http://cubiq.org/iscroll-4)
+* [glDatePicker] (http://glad.github.io/glDatePicker/)
 
 ## Feature
 
