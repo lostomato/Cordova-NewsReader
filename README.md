@@ -4,9 +4,7 @@ This is a Web App which created by HTML5, Jquery, JQuery Mobile and also could b
 ## Screenshot
 
 ![Alt text](/img/mainpage.png)
-
 ![Alt text](/img/calender1.png)
-
 ![Alt text](/img/calender2.png)
 
 
