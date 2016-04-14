@@ -1,22 +1,4 @@
 <!DOCTYPE html>
-<!--
-    Licensed to the Apache Software Foundation (ASF) under one
-    or more contributor license agreements.  See the NOTICE file
-    distributed with this work for additional information
-    regarding copyright ownership.  The ASF licenses this file
-    to you under the Apache License, Version 2.0 (the
-    "License"); you may not use this file except in compliance
-    with the License.  You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing,
-    software distributed under the License is distributed on an
-    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-     KIND, either express or implied.  See the License for the
-    specific language governing permissions and limitations
-    under the License.
--->
 <html>
 <head>
 <meta charset="UTF-8">
@@ -46,58 +28,323 @@
 <script src="js/jquery.mobile-1.4.5.min.js"></script>
 
 <script src="js/glDatePicker.js"></script>
-<script type="text/javascript" src="js/connect.js"></script>
-
-<script src="js/iscroll.js"></script>
-
-<script type="text/javascript">
-
-var myScroll,
+<script charset="utf-8" src="cordova.js"></script>
+<script>
+var max_id = 0; //for init
+var current_max_id = 0; //for update
+var storage = window.localStorage;
+var timer;
+var saved_dz = [];
+var myScroll, favScroll,
 	pullDownEl, pullDownOffset,
-	pullUpEl, pullUpOffset,dateInput,
+	pullUpEl, pullUpOffset,dateInput,newVersion,dateSwitch
     requestCounter = 1,
     requestDateCounter = 1,
 	generatedCount = 0;
     refreshForNewdz = false;
-    dateSwitch = false;
     initLink = '/dz/getdz.php?jsoncallback=?';
     initMaxIDLink = '/dz/getmaxid.php?jsoncallback=?';
     pDALink = '/dz/getdz.php?jsoncallback=?';
     pUALink = '/dz/getdz.php?requestCounter='+requestCounter+'&jsoncallback=?';
+    akuLink = '/dz/getnewversion.php?jsoncallback=?';
+    regLink = '/dz/reg.php';
+      // Wait for device API libraries to load           
 
+
+document.addEventListener("deviceready", onDeviceReady, false);        
+    // device APIs are available    
+function onDeviceReady() {
+        storage.setItem("uuid",device.uuid);
+        storage.setItem("dm",device.model);
+        storage.setItem("dp",device.platform);
+        storage.setItem("dv",device.version);
+        registerLink = regLink+'?uuid='+storage.getItem("uuid")+'&device_model='+storage.getItem("dm")+'&device_platform='+storage.getItem("dp")+'&device_version='+storage.getItem("dv")+'&jsoncallback=?';
+        console.log(registerLink);
+        $.getJSON(registerLink, function (data) {
+            //if (data.status == 'success') {}//successful registed
+        });
+}
+
+  
+/*
+$(document).on("pagecreate",function(){
+$.mobile.showPageLoadingMsg();
+    } 
+);
+*/
+
+//$(document).on("pageinit","#scroller",function(){
+$(document).on("ready", function(){
+    storage.setItem('version','1.0');
+    loaded();
+    favorLoaded();
+    //myScroll.refresh();
+    console.log("iscoll loaded!");
+    //no network but old dz content
+    if(storage.newstContent && !navigator.onLine){
+        console.log("no network but old dz content.");
+    	$(storage.newstContent).appendTo("#thelist");
+    	$("#thelist").trigger("create");
+        $("#network_notice").show();
+        $("#wrapper").css("top","70px");
+        $("#wrapper").show();
+        myScroll.refresh();
+        setTimeout(function () {//refresh the myScroll, otherwise there will be length confilct with mycalender() and myarchive(), cauz here is only one wrapper. 
+                myScroll.refresh();
+            }, 0);//when just write here myScroll.refresh(); the scroll will pass the bottom a little, don't know why. 
+        //;
+    }
+    //get max id and dz
+    $.getJSON(initMaxIDLink, function (data) {
+            if (data.status == 'success') {
+                $("#network_notice").hide();
+                window.max_id = parseInt(data.id);
+                console.log("maxId in database: "+window.max_id);
+                //if storage.maxid is the same with max_id from database, no new dz.
+    			if(storage.newstContent && parseInt(storage.maxid) == window.max_id){
+                    console.log("no new dz.");
+                    console.log(initLink);
+                    //$("#notice").show();
+                    //$("#thelist li").remove();
+    				$(storage.getItem("newstContent")).appendTo("#thelist");
+                    $("#thelist").trigger("create");
+                    $("a.ui-icon-heart").on("tap",function(){
+				        if ($(this).attr("save")=="false"){
+                            saved_dz.push('<li class="duanzi" style="white-space:pre-wrap;">' + $(this).parents("li").text() +'</li>');
+                            storage.setItem("savedContentNew",saved_dz.join(''));
+					        $(this).css("background-color","red");
+					        $(this).attr("save","true");
+					        return;
+				        }
+				        if($(this).attr("save")=="true"){
+					        $(this).css("background-color","transparent");
+					        $(this).attr("save","false");
+				        }
+                    });
+                    saved_dz = [];
+                    $("#wrapper").css("top","70px");
+                    $("#wrapper").show()
+                    setTimeout(function () {//refresh the myScroll, otherwise there will be length confilct with mycalender() and myarchive(), cauz here is only one wrapper. 
+                            myScroll.refresh();
+                        }, 0);//when just write here myScroll.refresh(); the scroll will pass the bottom a little, don't know why. 
+    			}
+                //initial or new dz
+    			if(parseInt(storage.maxid) < window.max_id || !storage.maxid || !storage.newstContent){
+                    console.log("yes new dz");
+                    //get new dz
+    			    $.getJSON(initLink,function (data) {
+                        // create a variable to hold the parsed output from the server
+                        var output = [];
+                        // if the PHP script returned a success
+                        if (data.status == 'success') {
+                            // iterate through the response rows
+                            for (var key in data.items) {
+                                var myString =data.items[key];
+                                output.push('<li class="duanzi" style="white-space:pre-wrap;">' + myString + 
+                                '<div class="ui-grid-d center" style="display: flex; text-align: center;">'+
+                                '<div class="ui-block-a" style="width: 50%;"><a save="false" class="ui-shadow ui-btn ui-corner-all ui-icon-heart ui-btn-icon-notext ui-btn-inline" style=""></a></div>'+
+                                '<div class="ui-block-b" style="width: 50%;"><a href="#shareWindow" data-transition="slide" class="ui-shadow ui-btn ui-corner-all ui-icon-refresh ui-btn-icon-notext ui-btn-inline" data-rel="popup"></a></div></div></li>');
+                            }
+                            storage.removeItem("maxid");
+                            storage.removeItem("newstContent");
+                            storage.setItem("maxid",data.maxid);
+                            storage.setItem("newstContent",output.join(''));
+                // if the PHP script returned an error
+                        } else {
+                            $("#notice").show();
+                            output.push('<li>出错</li>');
+                        }
+                        $(output.join('') ).appendTo("#thelist");
+                        $("#thelist").trigger("create");/*
+                        $("a.ui-icon-heart").on("tap",function(){
+    				        if ($(this).attr("save")=="false"){
+                                saved_dz.push('<li class="duanzi" style="white-space:pre-wrap;">' + $(this).parents("li").text() +'</li>');
+                                storage.setItem("savedContentNew",saved_dz.join(''));
+    					        $(this).css("background-color","red");
+    					        $(this).attr("save","true");
+    					        return;
+    				        }
+    				        if($(this).attr("save")=="true"){
+    					        $(this).css("background-color","transparent");
+    					        $(this).attr("save","false");
+    				        }
+                        });
+                        saved_dz = [];*/
+                        $("#wrapper").css("top","70px");
+                        $("#wrapper").show();
+                        setTimeout(function () {//refresh the myScroll, otherwise there will be length confilct with mycalender() and myarchive(), cauz here is only one wrapper. 
+                                myScroll.refresh();
+                            }, 0);
+                        //myScroll.refresh();
+                    });        
+                }			
+            }
+    });
+    //show update notice when there is new duanzi.
+    timer = window.setInterval(
+        function(){
+            if(!navigator.onLine){
+                $("#network_notice").show();
+                return;
+            }else{
+                $("#network_notice").hide();
+            }
+            $.getJSON(initMaxIDLink, function (data) {
+                    if (data.status == 'success') {
+                        window.current_max_id = parseInt(data.id);
+                        console.log("timer running");
+            			if(storage.newstContent && parseInt(storage.maxid) < window.current_max_id){
+                            $("#newdz_notice").show();
+            			} 			
+                    }
+            });
+        },60000);
+
+    $("a.ui-icon-heart").on("tap",function(){
+	        if ($(this).attr("save")=="false"){
+                saved_dz.push('<li class="duanzi" style="white-space:pre-wrap;">' + $(this).parents("li").text() +'</li>');
+                storage.setItem("savedContentNew",saved_dz.join(''));
+		        $(this).css("background-color","red");
+		        $(this).attr("save","true");
+		        return;
+	        }
+	        if($(this).attr("save")=="true"){
+		        $(this).css("background-color","transparent");
+		        $(this).attr("save","false");
+	        }
+    });
+    saved_dz = [];
+    
+    $(document ).on( "swipeleft", "#favlist li", function( event ) {
+        var listitem = $( this ),
+        // These are the classnames used for the CSS transition
+        dir = event.type === "swipeleft" ? "left" : "right",
+        // Check if the browser supports the transform (3D) CSS transition
+        transition = $.support.cssTransform3d ? dir : false;
+        //confirmAndDelete( listitem, transition );
+        confirmAndDelete( listitem );
+     });
+/*
+     // If it's not a touch device...
+     if ( ! $.mobile.support.touch ) {
+     // Remove the class that is used to hide the delete button on touch devices
+     $( "#thelist" ).removeClass( "touch" );
+     // Click delete split-button to remove list item
+     $( ".delete" ).on( "click", function() {
+     var listitem = $( this ).parent( "li" );
+     confirmAndDelete( listitem );
+     });
+     }*/
+     function confirmAndDelete( listitem, transition ) {
+         // Highlight the list item that will be removed
+         listitem.css("background-color","lightgray");
+         // Inject topic in confirmation popup after removing any previous injected topics
+         //$( "#confirm .topic" ).remove();
+         //listitem.find( ".topic" ).clone().insertAfter( "#question" );
+         // Show the confirmation popup
+         $( "#confirm" ).popup( "open" );
+         // Proceed when the user confirms
+         $( "#confirm #yes" ).on( "click", function() {
+             // Remove with a transition
+             if ( transition ) {
+                 listitem
+                 // Add the class for the transition direction
+                 .addClass( transition )
+                 // When the transition is done...
+                 .on( "webkitTransitionEnd transitionend otransitionend", function() {
+                     // ...the list item will be removed
+                     listitem.remove();
+                     // ...the list will be refreshed and the temporary class for border styling removed
+                     $( "#favlist" ).listview( "refresh" ).find( ".border-bottom" ).removeClass( "border-bottom" );
+                 })
+                 // During the transition the previous button gets bottom border
+                 .prev( "li" ).children( "a" ).addClass( "border-bottom" )
+                 // Remove the highlight
+                 .end().end().children( ".ui-btn" ).removeClass( "ui-btn-active" );
+                 storage.setItem("savedContent",$("#favlist").html());
+             }
+             // If it's not a touch device or the CSS transition isn't supported just remove the list item and refresh the list
+             else {
+                 listitem.remove();
+                 $( "#favlist" ).listview( "refresh" );
+                 $("#favwrapper").css("top","70px");
+                 favScroll.refresh();
+                 storage.setItem("savedContent",$("#favlist").html());
+             }
+         });
+         // Remove active state and unbind when the cancel button is clicked
+         $( "#confirm #cancel" ).on( "click", function() {
+             //listitem.remove();
+             listitem.css("background-color","#fafafa");
+             $( "#confirm #yes" ).off();
+         });
+     }       
+});    
+    
+</script>
+
+<script src="js/iscroll.js"></script>  
+<script type="text/javascript">
 /**
  * 下拉刷新 （自定义实现此方法）
  * myScroll.refresh();		// 数据加载完成后，调用界面更新方法
  */
 function pullDownAction () {
     if($("#newdz_notice").is(":visible")) 
-    {   
-                    $.getJSON(pDALink,function (data) {
-                    //$.mobile.showPageLoadingMsg();
-                    // create a variable to hold the parsed output from the server
-                    var output = [];
-                    // if the PHP script returned a success
-                    if (data.status == 'success') {
-                        //$.mobile.hidePageLoadingMsg();
-                        // iterate through the response rows
-                        for (var key in data.items) {
-                            var myString =data.items[key];
-                            output.push('<li style="white-space:pre-wrap;" onclick="onClickLi();"> ' + myString + '</li>');
-                        }
-                        storage.clear();
-                        storage.setItem("maxid",data.maxid);
-                        storage.setItem("newstContent",output.join(''));
-                    } else {
-                        output.push('<li>No Data Found</li>');
-                    }
-                    $("#thelist").empty();
-                    $(output.join('') ).appendTo("#thelist");
-                    $("#thelist").trigger("create");
-                    $("#newdz_notice").hide();
-                    myScroll.refresh();
-                });        
+    {
+        
+        if(!navigator.onLine){
+            console.log("pull down and no network");
+            return;
+        }
+        $.getJSON(pDALink,function (data) {
+            //$.mobile.showPageLoadingMsg();
+            // create a variable to hold the parsed output from the server
+            var output = [];
+            // if the PHP script returned a success
+            if (data.status == 'success') {
+                console.log("pull down and get new");
+                //$.mobile.hidePageLoadingMsg();
+                // iterate through the response rows
+                for (var key in data.items) {
+                    var myString =data.items[key];
+                    output.push('<li class="duanzi" style="white-space:pre-wrap;">' + myString + 
+                '<div class="ui-grid-d center" style="display: flex; text-align: center;">'+
+                '<div class="ui-block-a" style="width: 50%;"><a save="false" class="ui-shadow ui-btn ui-corner-all ui-icon-heart ui-btn-icon-notext ui-btn-inline" style=""></a></div>'+
+                '<div class="ui-block-b" style="width: 50%;"><a href="#shareWindow" data-transition="slide" class="ui-shadow ui-btn ui-corner-all ui-icon-refresh ui-btn-icon-notext ui-btn-inline" data-rel="popup"></a></div></div></li>');
+                }
+                storage.removeItem("maxid");
+                storage.removeItem("newstContent");
+                storage.setItem("maxid",data.maxid);
+                storage.setItem("newstContent",output.join(''));
+            } else {
+                output.push('<li>No Data Found</li>');
+            }
+            $("#thelist").empty();
+            $(output.join('') ).appendTo("#thelist");
+            $("#thelist").trigger("create");
+            $("a.ui-icon-heart").on("tap",function(){
+				if ($(this).attr("save")=="false"){
+                    saved_dz.push('<li class="duanzi" style="white-space:pre-wrap;">' + $(this).parents("li").text() + 
+                    '</li>');
+                    storage.setItem("savedContentNew",saved_dz.join(''));
+					$(this).css("background-color","red");
+					$(this).attr("save","true");
+					return;
+				}
+				if($(this).attr("save")=="true"){
+					$(this).css("background-color","transparent");
+					$(this).attr("save","false");
+				}
+            });
+            saved_dz = [];
+            $("#newdz_notice").hide();
+            myScroll.refresh();
+        });        
     }else{
+        console.log("just pull down.");
         myScroll.refresh();
+        return;
     }
 }
 
@@ -106,6 +353,11 @@ function pullDownAction () {
  * myScroll.refresh();		// 数据加载完成后，调用界面更新方法
  */
 function pullUpAction () {
+    console.log("pull up one time");
+    if(!navigator.onLine){
+        console.log("pull up while no network");
+        return;
+    }
     if(dateSwitch==true){ 
         pUALink = '/dz/getdz.php?requestDate='+dateInput+'&requestDateCounter='+requestDateCounter+'&jsoncallback=?';
     }else{
@@ -113,16 +365,15 @@ function pullUpAction () {
     }        
 
     if(requestCounter>10 || requestDateCounter >10){
-        alert("已经是所有段子了。");
+        alert("试试按日期查看");
         return;
     }else{
         if(dateSwitch==true){
             ++requestDateCounter;
-            }else{
-            ++requestCounter;                
-            }
-		$.getJSON(pUALink,function (data) {
-            console.log(pUALink);
+        }else{
+            ++requestCounter;
+        }
+        $.getJSON(pUALink,function (data) {
                     //$.mobile.showPageLoadingMsg();
                     // create a variable to hold the parsed output from the server
                     var output = [];
@@ -130,21 +381,37 @@ function pullUpAction () {
                     if (data.status == 'success') {
                         //$.mobile.hidePageLoadingMsg();
                         // iterate through the response rows
+                        console.log("pull up action: "+pUALink);
                         for (var key in data.items) {
                             var myString =data.items[key];
-                            //myString = myString.replace("\\n", "");
-                            //myString = myString.Replace("\r\n", "");
-                            //myString = myString.Replace("\\r\\n", "");
-                            output.push('<li style="white-space:pre-wrap;" onclick="onClickLi();">' + myString + '</li>');
+                            output.push('<li class="duanzi" style="white-space:pre-wrap;">' + myString + 
+                            '<div class="ui-grid-d center" style="display: flex; text-align: center;">'+
+                            '<div class="ui-block-a" style="width: 50%;"><a save="false" class="ui-shadow ui-btn ui-corner-all ui-icon-heart ui-btn-icon-notext ui-btn-inline" style=""></a></div>'+
+                            '<div class="ui-block-b" style="width: 50%;"><a href="#shareWindow" data-transition="slide" class="ui-shadow ui-btn ui-corner-all ui-icon-refresh ui-btn-icon-notext ui-btn-inline" data-rel="popup"></a></div></div></li>');
                         }
                     // if the PHP script returned an error
                     } else {
-                        output.push('<li>No Data Found</li>');
+                        output.push('<li>没有数据</li>');
                     }
                     $(output.join('') ).appendTo("#thelist");
                     $("#thelist").trigger("create");
                     myScroll.refresh();
-                });            
+                    $("a.ui-icon-heart").on("tap",function(){
+        				if ($(this).attr("save")=="false"){
+                            saved_dz.push('<li class="duanzi" style="white-space:pre-wrap;">' + $(this).parents("li").text() + 
+                            '</li>');
+                            storage.setItem("savedContentNew",saved_dz.join(''));
+        					$(this).css("background-color","red");
+        					$(this).attr("save","true");
+        					return;
+        				}
+        				if($(this).attr("save")=="true"){
+        					$(this).css("background-color","transparent");
+        					$(this).attr("save","false");
+        				}
+                    });
+                    saved_dz = [];                    
+        });            
     }
 }
 
@@ -152,6 +419,7 @@ function pullUpAction () {
  * 初始化iScroll控件
  */
 function loaded() {
+    
 	pullDownEl = document.getElementById('pullDown');
 	pullDownOffset = pullDownEl.offsetHeight;
 	pullUpEl = document.getElementById('pullUp');	
@@ -204,7 +472,27 @@ function loaded() {
 	
 	//setTimeout(function () { document.getElementById('wrapper').style.left = '0'; }, 800);
 }
+function favorLoaded() {
+	favScroll = new iScroll('favwrapper');
+}
 
+function getNewV(){
+    $.getJSON(akuLink,function (data) {
+    // if the PHP script returned a success
+        if (data.status == 'success') {
+            if(data.version>storage.getItem("version")){
+                //storage.removeItem("version");
+                //storage.setItem("version",data.version);
+                newVersion = data.versionLink;
+                $("#akuPopup").html('<h3 class="ui-title">发现新版本'+data.version+'!</h3><a href="'+newVersion+'" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-btn-b" data-rel="back">点击更新</a>');                
+            }else{
+                $("#akuPopup").html("<h3>当前版本已是最新</h3>");                
+            }
+        } else {
+            $("#akuPopup").html("<h3>获取版本失败!</h3>");
+        }
+    });
+}
 //初始化绑定iScroll控件 
 //document.addEventListener('touchmove', function (e) { e.preventDefault(); }, false);
 </script>
@@ -213,20 +501,39 @@ function loaded() {
 <link rel="stylesheet" href="css/duanzi.css">
 <script>
 function mynew(){
+    if(navigator.onLine){
+        $("#network_notice").hide();
+    }
     dateSwitch = false;
+    $("#favwrapper").hide();
     $("#mycalenda").hide();
     if(storage.newstContent){
         $("#thelist li").remove();
 		$(storage.getItem("newstContent")).appendTo("#thelist");
 		$("#thelist").trigger("create");
+        $("a.ui-icon-heart").on("tap",function(){
+			if ($(this).attr("save")=="false"){
+                saved_dz.push('<li class="duanzi" style="white-space:pre-wrap;">' + $(this).parents("li").text() + '</li>');
+                storage.setItem("savedContentNew",saved_dz.join(''));
+				$(this).css("background-color","red");
+				$(this).attr("save","true");
+				return;
+			}
+			if($(this).attr("save")=="true"){
+				$(this).css("background-color","transparent");
+				$(this).attr("save","false");
+			}
+        });
+        saved_dz = [];
 	}
-    $("#wrapper").css("top","75px");
+    $("#wrapper").css("top","70px");
     $("#wrapper").show();
     setTimeout(function () {//refresh the myScroll, otherwise there will be length confilct with mycalender() and myarchive(), cauz here is only one wrapper. 
             myScroll.refresh();
         }, 0);
 }
 function mycalender(){
+    $("#favwrapper").hide();
     $("#wrapper").hide();    
     $("#mycalenda").show();
     $('div').find('[gldp-el=mydate]').css("display","block");
@@ -235,9 +542,47 @@ function mycalender(){
         }, 0);
 }
 function myarchive(){
-    $("#mycalenda").hide();
-    $("#wrapper").css("top","75px");
+    //"savedContent"
     $("#wrapper").hide();
+    $("#mycalenda").hide();
+    //$("#favwrapper").show();    
+    if(storage.savedContent && !storage.savedContentNew){
+        $("#favlist li").remove();
+		$(storage.getItem("savedContent")).appendTo("#favlist");
+		$("#favlist").trigger("create");
+        $("#favwrapper").css("top","70px");
+        $("#favwrapper").show();
+        favScroll.refresh();        
+    }
+    if(storage.savedContentNew && !storage.savedContent){
+        $("#favlist li").remove();
+		$(storage.getItem("savedContentNew")).appendTo("#favlist");
+        storage.savedContent = storage.savedContentNew;
+        storage.removeItem("savedContentNew");
+		$("#favlist").trigger("create");
+        $("#favwrapper").css("top","70px");
+        $("#favwrapper").show();
+        favScroll.refresh();
+    }
+    if(storage.savedContentNew && storage.savedContent && storage.savedContent!=" "){
+        $("#favlist li").remove();
+        storage.savedContent = storage.savedContentNew + storage.savedContent;
+        $(storage.getItem("savedContent")).appendTo("#favlist");
+        storage.removeItem("savedContentNew");
+		$("#favlist").trigger("create");
+        $("#favwrapper").css("top","70px");
+        $("#favwrapper").show();
+        favScroll.refresh();
+    }
+    if(!storage.savedContentNew && ( storage.savedContent=="" || !storage.savedContent)){
+        $("#favlist li").remove();
+        $('<li class="duanzi" style="white-space:pre-wrap;">暂时没有收藏段子</li>').appendTo("#favlist");
+		$("#favlist").trigger("create");
+        $("#favwrapper").css("top","70px");
+        $("#favwrapper").show();
+        favScroll.refresh();
+    }
+    //refresh the myScroll, otherwise there will be length confilct with mycalender() and myarchive(), cauz here is only one wrapper. 
 }
 
 function dateInputChange(date){//this function will be called in glDatePicker.js line 169.
@@ -245,7 +590,7 @@ function dateInputChange(date){//this function will be called in glDatePicker.js
     $("#wrapper").show();
     dateInput = date;
     $("#thelist li").remove();
-    console.log("/dz/getdz.php?requestDate="+dateInput+"&jsoncallback=?");
+    if(!navigator.onLine){return;}    //console.log("/dz/getdz.php?requestDate="+dateInput+"&jsoncallback=?");
 	$.getJSON("/dz/getdz.php?requestDate="+dateInput+"&jsoncallback=?",function (data) {
     // create a variable to hold the parsed output from the server
     var output = [];
@@ -260,10 +605,10 @@ function dateInputChange(date){//this function will be called in glDatePicker.js
         // iterate through the response rows
         for (var key in data.items) {
             var myString =data.items[key];
-            //myString = myString.replace("\\n", "");
-            //myString = myString.replace("\r\n", "");
-            //myString = myString.replace("\\r\\n", "");
-            output.push('<li style="white-space:pre-wrap;" onclick="onClickLi();">' + myString + '</li>');
+            output.push('<li class="duanzi" style="white-space:pre-wrap;" ">' + myString + 
+            '<div class="ui-grid-d center" style="display: flex; text-align: center;">'+
+            '<div class="ui-block-a" style="width: 50%;"><a save="false" class="ui-shadow ui-btn ui-corner-all ui-icon-heart ui-btn-icon-notext ui-btn-inline" style=""></a></div>'+
+            '<div class="ui-block-b" style="width: 50%;"><a href="#shareWindow" data-transition="slide" class="ui-shadow ui-btn ui-corner-all ui-icon-refresh ui-btn-icon-notext ui-btn-inline" data-rel="popup"></a></div></div></li>');
         }
         storage.removeItem("dateContent");
         storage.setItem("dateContent",output.join(''));
@@ -276,6 +621,19 @@ function dateInputChange(date){//this function will be called in glDatePicker.js
     $.mobile.loading('hide');
     $("#thelist").trigger("create");
     dateSwitch = true;
+    $("a.ui-icon-heart").on("tap",function(){
+		if ($(this).attr("save")=="false"){
+            saved_dz.push('<li class="duanzi" style="white-space:pre-wrap;">' + $(this).parents("li").text() + '</li>');
+            storage.setItem("savedContentNew",saved_dz.join(''));
+			$(this).css("background-color","red");
+			$(this).attr("save","true");
+			return;
+		}
+		if($(this).attr("save")=="true"){
+			$(this).css("background-color","transparent");
+			$(this).attr("save","false");
+		}
+    });    
     myScroll.refresh();
     });        
 }
@@ -286,15 +644,16 @@ function onClickLi(e)
     //alert(e.target.nodeName);
     alert($(e.target).text());*/
 }
-
+//document.getElementById("cordovaDevice").addEventListener("click", cordovaDevice);
 </script>
+
 </head>
 <body>
     <div data-role="header">
   <!--a id="content" href="#" data-role="button">首页</a-->
-      <button id="seeb">登录</button>
-      <h1>段子</h1>
-      <a data-icon="bars" data-iconpos="left" href="#nav_menu" data-rel="popup" data-transition="slideup" class="ui-btn-right">设置</a>
+    <a href="#popupLogin" data-rel="popup" data-position-to="window" class="ui-btn ui-shadow ui-btn-inline ui-icon-user ui-btn-icon-left ui-btn-a" data-transition="pop">登录</a>
+      <h1 style="font-size: 1.2em; min-height: 1.2em;">段子</h1>
+      <a data-icon="bars" data-iconpos="left" href="#nav_menu" data-transition="slideup" class="ui-btn ui-shadow ui-btn-inline ui-icon-bars ui-btn-icon-left ui-btn-a">设置</a>
       <div data-role="navbar">
           <ul>
               <li><a onclick="mynew()" class="ui-btn-active ui-state-persist">最新</a></li>
@@ -303,17 +662,17 @@ function onClickLi(e)
           </ul>
           <ul>
               <li style="width:100%">
-          <div>                         
-              <script>
-              $("#mydate").glDatePicker();
-              </script>
-              <div id="mycalenda" style="display:none">
-                   <input type="text" id="mydate" gldp-id="mydate" readonly/>
-                   <div gldp-el="mydate"
-                        style="display:block; width:350px; height:300px; position:static; margin: 0 auto; top: 0;">
-                   </div>
-              </div>
-          </div>
+                  <div>                         
+                      <script>
+                      $("#mydate").glDatePicker();
+                      </script>
+                      <div id="mycalenda" style="display:none">
+                           <input type="text" id="mydate" gldp-id="mydate" readonly/>
+                           <div gldp-el="mydate"
+                                style="display:block; width:350px; height:300px; position:static; margin: 0 auto; top: 0;">
+                           </div>
+                      </div>
+                  </div>
               <li>
           </ul>
       </div>
@@ -325,7 +684,7 @@ function onClickLi(e)
                       <span class="pullDownIcon"></span><span class="pullDownLabel">下拉刷新...</span>
                   </div>
                   <div id="test">                      
-                      <div><p id="newdz_notice" style="display:none;">有新段子，下拉刷新</p></div>
+                      <div class="ui-bar-a"><p id="newdz_notice"  style="display:none;">有新段子，下拉刷新</p><p id="network_notice"  style="display:none;">无网络或者网络不稳定</p></div>
                       <ul id="thelist" data-role="listview">
                       </ul>
                   </div>
@@ -334,15 +693,87 @@ function onClickLi(e)
                   </div>
           </div>
          </div>
+         <div id="favwrapper" style="display:none">
+          <div id="favscroller">
+            <div class="ui-bar-a"><p>向左滑动以删除该条段子</p></div>
+            <ul id="favlist" data-role="listview">
+            </ul>
+          </div>             
+         </div>
     </div>
-    <div class="ui-popup-container slideup in ui-popup-active" id="nav_menu-popup" tabindex="0">
-        <div data-role="popup" id="nav_menu" data-theme="a" class="ui-popup ui-body-a ui-overlay-shadow ui-corner-all">
+    <div data-role="footer" data-position="fixed" role="contentinfo" class="ui-footer ui-bar-inherit ui-footer-fixed slideup">
+        <h4 style="" class="ui-title" role="heading" aria-level="1">Footer</h4>
+    </div>
+
+    <div data-role="panel" id="nav_menu" data-position="right" data-display="push" data-theme="b" class="ui-panel ui-panel-position-right ui-panel-display-push ui-body-b ui-panel-animate ui-panel-open">
+        <div class="ui-panel-inner">
+            <h3>设置</h3>
+            <div>
+                <form>
+                    <fieldset data-role="controlgroup">
+                        <legend>内容来源:</legend>
+                    <input type="checkbox" name="checkbox-v-2a" id="checkbox-v-2a" value="on" checked="checked" >
+                    <label for="checkbox-v-2a">娱乐</label>
+                    <input type="checkbox" name="checkbox-v-2b" id="checkbox-v-2b" value="on" checked="checked">
+                    <label for="checkbox-v-2b">社会</label>
+                    <input type="checkbox" name="checkbox-v-2c" id="checkbox-v-2c">
+                    <label for="checkbox-v-2c">政评</label>
+                    </fieldset>
+                </form>
                 <ul data-role="listview" class="ui-listview">
-                    <li class="ui-first-child"><a href="" data-rel="dialog" data-transition="flip" class="ui-btn ui-btn-icon-right ui-icon-carat-r">系统注册</a></li>
-                    <li class="ui-last-child"><a data-ajax="false" href="" class="ui-btn ui-btn-icon-right ui-icon-carat-r">关于本站</a></li>
+                    <li class="ui-first-child">
+                        <a onclick="getNewV();" href="#akuaDialog" data-rel="popup" data-transition="flip" class="ui-btn ui-btn-icon-right ui-icon-carat-r">检查新版本<span class="ui-li-count">1.0</span></a>
+                    </li>
+                    <li class="ui-last-child">
+                        <a data-ajax="false" href="" class="ui-btn ui-btn-icon-right ui-icon-carat-r">联系我们</a>
+                    </li>
                 </ul>
+            </div>
         </div>
     </div>
+    
+    <div data-role="popup" id="popupLogin" data-theme="a" class="ui-corner-all">
+        <form>
+            <div style="padding:10px 20px;">
+                 <h3>请登录</h3>
+                 <label for="un" class="ui-hidden-accessible">用户名:</label>
+                 <input type="text" name="user" id="un" value="" placeholder="用户名" data-theme="a">
+                 <label for="pw" class="ui-hidden-accessible">密码:</label>
+                 <input type="password" name="pass" id="pw" value="" placeholder="密码" data-theme="a">
+                 <button type="submit" class="ui-btn ui-corner-all ui-shadow ui-btn-a ui-btn-icon-left ui-icon-check">登录</button>
+            </div>
+        </form>
+    </div>
+    
+    <div data-role="popup" id="shareWindow" class="ui-content" data-theme="a">
+    		<h3>分享</h3>
+    		<a href="dialog-success.html" data-transition="slidedown" class="ui-btn ui-shadow ui-corner-all ui-btn-b">微博</a>
+    		<a href="dialog-success.html" data-transition="slidedown" class="ui-btn ui-shadow ui-corner-all ui-btn-b">微信</a>
+    		<a href="index.html" data-rel="back" class="ui-btn ui-shadow ui-corner-all ui-btn-a">取消</a>
+    </div>
+
+    <div id="confirm" class="ui-content" data-role="popup" data-theme="a">
+        <p id="question">你要删除这条段子吗？</p>
+        <div class="ui-grid-a">
+            <div class="ui-block-a">
+                <a id="yes" class="ui-btn ui-corner-all ui-mini ui-btn-a" data-rel="back">删除</a>
+            </div>
+            <div class="ui-block-b">
+                <a id="cancel" class="ui-btn ui-corner-all ui-mini ui-btn-a" data-rel="back">取消</a>
+            </div>
+        </div>
+    </div>
+    <div data-role="popup" id="akuaDialog" data-overlay-theme="b" data-theme="b" data-dismissible="false" style="max-width:400px;">
+        <div data-role="header" data-theme="a">
+            <h1>版本更新</h1>
+        </div>
+        <div role="main" class="ui-content">
+            <div id="akuPopup">
+            </div>
+            <a href="#" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-btn-b" data-rel="back"       data-transition="flow">知道了</a>
+        </div>
+    </div>
+    
 </div>
 
 </body>
