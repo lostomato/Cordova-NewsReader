@@ -3,10 +3,10 @@ This is a Web App which created by HTML5/CSS, Jquery, JQuery Mobile and also cou
 
 ## Screenshot
 
-![Alt text](/img/mainpage.png)
-![Alt text](/img/calender1.png)
-![Alt text](/img/calender2.png)
-![Alt text](/img/calender3.png)
+![Alt text](/img/main.png)
+![Alt text](/img/calender.png)
+![Alt text](/img/set.png)
+![Alt text](/img/fav.png)
 
 ## Structure
 It has a Client-Server model.
