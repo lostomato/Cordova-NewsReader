@@ -1,5 +1,5 @@
 # NewsReader
-This is a Web App which created by HTML5/CSS, Jquery, JQuery Mobile and also could be also targeted to cross platform by Cordova.
+This is an mobile App which created by HTML5/CSS, Jquery, JQuery Mobile and also could be also targeted to cross platform by Cordova. You can download and install it [here](/android-debug.apk)
 
 ## Screenshot
 
@@ -36,6 +36,14 @@ User can pull up the scroller and read more news from this date on.
 User can mark a certain news and save them on favorite page.
 Saved news can be deleted from favorite page by user.
 
+* delete the saved news
+User can slide on the saved news to delete.
+
+* chose different news resource
+User can chose different resource in setting.
+
+* login and comment (still in development)
+User can register and login, also leave a comment to certain news.
 
 
 
