@@ -1,12 +1,12 @@
 # NewsReader
-This is a Web App which created by HTML5, Jquery, JQuery Mobile and also could be also targeted to cross platform by Cordova.
+This is a Web App which created by HTML5/CSS, Jquery, JQuery Mobile and also could be also targeted to cross platform by Cordova.
 
 ## Screenshot
 
 ![Alt text](/img/mainpage.png)
 ![Alt text](/img/calender1.png)
 ![Alt text](/img/calender2.png)
-
+![Alt text](/img/calender3.png)
 
 ## Structure
 It has a Client-Server model.
