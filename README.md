@@ -10,14 +10,14 @@ This is an mobile App which created by HTML5/CSS, Jquery, JQuery Mobile and also
 
 ## Structure
 It has a Client-Server model.
-Client: Web App
+Client: Web App by HTML5/CSS, JQuery/JQeury Mobile, Cordova
 Server: Mysql database, Python Crawler and Server API by php 
 
-## Used Plugins
+## UI Plugins
 * [Iscroller 4](http://cubiq.org/iscroll-4)
 * [glDatePicker] (http://glad.github.io/glDatePicker/)
 
-## Feature
+## Feature List
 
 * read latest news from database
 This is the main page.
@@ -42,9 +42,14 @@ User can slide on the saved news to delete.
 * chose different news resource
 User can chose different resource in setting.
 
+* check app installation data in database
+As admin you can see how many user have installed this app.
+
+* check version and update
+User can check if there is a newer version and update this app.
+
 * login and comment (still in development)
 User can register and login, also leave a comment to certain news.
-
 
 
 
