@@ -16,6 +16,7 @@
         //$.mobile.changePage.defaults.changeHash = false;
         //$.mobile.hashListeningEnabled = false;
         $.mobile.pushStateEnabled = false;
+        $.mobile.loading("show");
     });
 </script>
 <script src="js/jquery.mobile-1.4.5.min.js"></script>
@@ -37,12 +38,15 @@ var myScroll, favScroll,
 	generatedCount = 0;
     dzversion = '1.0';
     refreshForNewdz = false;
-    initLink = '/dz/getdz.php?jsoncallback=?';
-    initMaxIDLink = '/dz/getmaxid.php?jsoncallback=?';
-    pDALink = '/dz/getdz.php?jsoncallback=?';
-    pUALink = '/dz/getdz.php?requestCounter='+requestCounter+'&jsoncallback=?';
-    akuLink = '/dz/getnewversion.php?jsoncallback=?';
-    regLink = '/dz/reg.php';
+    initLink = 'path/getdz.php?reqPolitic=yes&jsoncallback=?';
+    initMaxIDLink = 'path/getmaxid.php?jsoncallback=?';
+    pDALink = 'path/getdz.php?reqPolitic=yes&jsoncallback=?';
+    pUALink = 'path/getdz.php?reqPolitic=yes&requestCounter='+requestCounter+'&jsoncallback=?';
+    akuLink = 'path/getnewversion.php?jsoncallback=?';
+    regLink = 'path/reg.php';
+    liA  = '<li class="duanzi" style="white-space:pre-wrap;">';
+    liBdivA  = '<div class="ui-grid-d center" style="display: flex; text-align: center;"><div class="ui-block-a" style="width: 33%;"><a save="false" class="ui-shadow ui-btn ui-corner-all ui-icon-heart ui-btn-icon-notext ui-btn-inline" style=""></a></div><div style="width: 33%;">';
+    liBdivB  = '</div><div class="ui-block-b" style="width: 34%;"><a href="#shareWindow" data-transition="slide" class="ui-shadow ui-btn ui-corner-all ui-icon-refresh ui-btn-icon-notext ui-btn-inline" data-rel="popup"></a></div></div></li>';
       // Wait for device API libraries to load           
 
 
@@ -65,14 +69,13 @@ function onDeviceReady() {
 
 //regist pause event
 function onPause(){
-    
-
+    myScroll.refresh();
 }
 // regist resume event
 function onResume(){
 
 }
-//$(document).on("pageinit","#scroller",function(){
+
 $(document).on("ready", function(){
     storage.setItem('version','1.0');
     $.mobile.loading( "show", {
@@ -80,15 +83,14 @@ $(document).on("ready", function(){
         textVisible: true,
         textonly: false
     });
-    //if(navigator.onLine){
     loaded();
     favorLoaded();
-    console.log("iscoll loaded!");
-    //}    
+    console.log("iscoll loaded!");   
     //myScroll.refresh();
     //no network but old dz content
     if(storage.newstContent && !navigator.onLine){
     //if(storage.newstContent)
+        $.mobile.loading('hide');
     	$(storage.newstContent).appendTo("#thelist");
     	$("#thelist").trigger("create");
         $("#wrapper").css("top","70px");
@@ -101,6 +103,7 @@ $(document).on("ready", function(){
     if(navigator.onLine){
         $.getJSON(initMaxIDLink, function (data) {
             if (data.status == 'success') {
+                $.mobile.loading('hide');
                 $("#network_notice").hide();
                 window.max_id = parseInt(data.id);
                 console.log("maxId in database: "+window.max_id);
@@ -110,6 +113,7 @@ $(document).on("ready", function(){
                     console.log(initLink);
                     //$("#notice").show();
                     //$("#thelist li").remove();
+                    $.mobile.loading('hide');
     				$(storage.getItem("newstContent")).appendTo("#thelist");
                     $("#thelist").trigger("create");
                     $("a.ui-icon-heart").on("tap",function(){
@@ -141,24 +145,24 @@ $(document).on("ready", function(){
                         var output = [];
                         // if the PHP script returned a success
                         if (data.status == 'success') {
+                            $.mobile.loading('hide');
                             // iterate through the response rows
                             for (var key in data.items) {
-                                var myString =data.items[key];
-                                output.push('<li class="duanzi" style="white-space:pre-wrap;">' + myString + 
-                                '<div class="ui-grid-d center" style="display: flex; text-align: center;">'+
-                                '<div class="ui-block-a" style="width: 50%;"><a save="false" class="ui-shadow ui-btn ui-corner-all ui-icon-heart ui-btn-icon-notext ui-btn-inline" style=""></a></div>'+
-                                '<div class="ui-block-b" style="width: 50%;"><a href="#shareWindow" data-transition="slide" class="ui-shadow ui-btn ui-corner-all ui-icon-refresh ui-btn-icon-notext ui-btn-inline" data-rel="popup"></a></div></div></li>');
+                                if(key < data.items.length){
+                                    output.push(liA + data.items[key]['content'] + liBdivA +data.items[key]['time']+ liBdivB);
+                                }
                             }
                             storage.removeItem("maxid");
                             storage.removeItem("newstContent");
                             storage.setItem("maxid",data.maxid);
                             storage.setItem("newstContent",output.join(''));
-                // if the PHP script returned an error
+                            // if the PHP script returned an error
                         } else {
                             $("#notice").show();
                             output.push('<li>出错</li>');
                         }
-                        $(output.join('') ).appendTo("#thelist");
+                        $(output.join('')).appendTo("#thelist");
+                        //$(content).appendTo("#thelist");
                         $("#thelist").trigger("create");/*
                         $("a.ui-icon-heart").on("tap",function(){
     				        if ($(this).attr("save")=="false"){
@@ -183,6 +187,8 @@ $(document).on("ready", function(){
                 }			
             }
             else {
+                $.mobile.loading('hide');
+                console.log("get maxID fails.");
             	$(storage.newstContent).appendTo("#thelist");
             	$("#thelist").trigger("create");
                 $("#wrapper").css("top","70px");
@@ -193,7 +199,6 @@ $(document).on("ready", function(){
             }
         });
     }
-    $.mobile.loading( "hide" );
     //show update notice when there is new duanzi.
     timer = window.setInterval(
         function(){
@@ -233,18 +238,7 @@ $(document).on("ready", function(){
         transition = $.support.cssTransform3d ? dir : false;
         //confirmAndDelete( listitem, transition );
         confirmAndDelete( listitem );
-     });
-/*
-     // If it's not a touch device...
-     if ( ! $.mobile.support.touch ) {
-     // Remove the class that is used to hide the delete button on touch devices
-     $( "#thelist" ).removeClass( "touch" );
-     // Click delete split-button to remove list item
-     $( ".delete" ).on( "click", function() {
-     var listitem = $( this ).parent( "li" );
-     confirmAndDelete( listitem );
-     });
-     }*/   
+    });
 });    
     
 </script>
@@ -318,11 +312,9 @@ function pullDownAction () {
                 //$.mobile.hidePageLoadingMsg();
                 // iterate through the response rows
                 for (var key in data.items) {
-                    var myString =data.items[key];
-                    output.push('<li class="duanzi" style="white-space:pre-wrap;">' + myString + 
-                '<div class="ui-grid-d center" style="display: flex; text-align: center;">'+
-                '<div class="ui-block-a" style="width: 50%;"><a save="false" class="ui-shadow ui-btn ui-corner-all ui-icon-heart ui-btn-icon-notext ui-btn-inline" style=""></a></div>'+
-                '<div class="ui-block-b" style="width: 50%;"><a href="#shareWindow" data-transition="slide" class="ui-shadow ui-btn ui-corner-all ui-icon-refresh ui-btn-icon-notext ui-btn-inline" data-rel="popup"></a></div></div></li>');
+                    if(key < data.items.length){
+                        output.push(liA + data.items[key]['content'] + liBdivA +data.items[key]['time']+ liBdivB);
+                    }
                 }
                 storage.removeItem("maxid");
                 storage.removeItem("newstContent");
@@ -370,9 +362,9 @@ function pullUpAction () {
         return;
     }
     if(dateSwitch==true){ 
-        pUALink = '/dz/getdz.php?requestDate='+dateInput+'&requestDateCounter='+requestDateCounter+'&jsoncallback=?';
+        pUALink = 'path/getdz.php?reqPolitic=yes&requestDate='+dateInput+'&requestDateCounter='+requestDateCounter+'&jsoncallback=?';
     }else{
-        pUALink = '/dz/getdz.php?requestCounter='+requestCounter+'&jsoncallback=?';
+        pUALink = 'path/getdz.php?reqPolitic=yes&requestCounter='+requestCounter+'&jsoncallback=?';
     }        
 
     if(requestCounter>10 || requestDateCounter >10){
@@ -394,11 +386,9 @@ function pullUpAction () {
                         // iterate through the response rows
                         console.log("pull up action: "+pUALink);
                         for (var key in data.items) {
-                            var myString =data.items[key];
-                            output.push('<li class="duanzi" style="white-space:pre-wrap;">' + myString + 
-                            '<div class="ui-grid-d center" style="display: flex; text-align: center;">'+
-                            '<div class="ui-block-a" style="width: 50%;"><a save="false" class="ui-shadow ui-btn ui-corner-all ui-icon-heart ui-btn-icon-notext ui-btn-inline" style=""></a></div>'+
-                            '<div class="ui-block-b" style="width: 50%;"><a href="#shareWindow" data-transition="slide" class="ui-shadow ui-btn ui-corner-all ui-icon-refresh ui-btn-icon-notext ui-btn-inline" data-rel="popup"></a></div></div></li>');
+                            if(key < data.items.length){
+                                output.push(liA + data.items[key]['content'] + liBdivA +data.items[key]['time']+ liBdivB);;
+                            }
                         }
                     // if the PHP script returned an error
                     } else {
@@ -488,7 +478,7 @@ function favorLoaded() {
 	favScroll = new iScroll('favwrapper');
 }
 
-//show newst entry
+//show newst version
 function getNewV(){
     $.getJSON(akuLink,function (data) {
     // if the PHP script returned a success
@@ -602,8 +592,8 @@ function dateInputChange(date){//this function will be called in glDatePicker.js
     $("#wrapper").show();
     dateInput = date;
     $("#thelist li").remove();
-    if(!navigator.onLine){return;}    //console.log("/dz/getdz.php?requestDate="+dateInput+"&jsoncallback=?");
-	$.getJSON("/dz/getdz.php?requestDate="+dateInput+"&jsoncallback=?",function (data) {
+    if(!navigator.onLine){return;}    //console.log("path/getdz.php?requestDate="+dateInput+"&jsoncallback=?");
+	$.getJSON("path/getdz.php?reqPolitic=yes&requestDate="+dateInput+"&jsoncallback=?",function (data) {
     // create a variable to hold the parsed output from the server
     var output = [];
     $.mobile.loading('show', {
@@ -616,11 +606,9 @@ function dateInputChange(date){//this function will be called in glDatePicker.js
     if (data.status == 'success') {
         // iterate through the response rows
         for (var key in data.items) {
-            var myString =data.items[key];
-            output.push('<li class="duanzi" style="white-space:pre-wrap;" ">' + myString + 
-            '<div class="ui-grid-d center" style="display: flex; text-align: center;">'+
-            '<div class="ui-block-a" style="width: 50%;"><a save="false" class="ui-shadow ui-btn ui-corner-all ui-icon-heart ui-btn-icon-notext ui-btn-inline" style=""></a></div>'+
-            '<div class="ui-block-b" style="width: 50%;"><a href="#shareWindow" data-transition="slide" class="ui-shadow ui-btn ui-corner-all ui-icon-refresh ui-btn-icon-notext ui-btn-inline" data-rel="popup"></a></div></div></li>');
+            if(key < data.items.length){
+                output.push(liA + data.items[key]['content'] + liBdivA +data.items[key]['time']+ liBdivB);
+            }
         }
         storage.removeItem("dateContent");
         storage.setItem("dateContent",output.join(''));
@@ -649,13 +637,7 @@ function dateInputChange(date){//this function will be called in glDatePicker.js
     myScroll.refresh();
     });        
 }
-function onClickLi(e)
-{/*
-    e = e || window.event;
-    e.target = e.target || e.srcElement;
-    //alert(e.target.nodeName);
-    alert($(e.target).text());*/
-}
+
 //document.getElementById("cordovaDevice").addEventListener("click", cordovaDevice);
 </script>
 
@@ -664,7 +646,7 @@ function onClickLi(e)
     <div data-role="header">
   <!--a id="content" href="#" data-role="button">首页</a-->
     <a href="#popupLogin" data-rel="popup" data-position-to="window" class="ui-btn ui-shadow ui-btn-inline ui-icon-user ui-btn-icon-left ui-btn-a" data-transition="pop">登录</a>
-      <h1 style="font-size: 1.2em; min-height: 1.2em;">段子</h1>
+      <h1 style="font-size: 1.2em; min-height: 1.2em;">每日段子</h1>
       <a data-icon="bars" data-iconpos="left" href="#nav_menu" data-transition="slideup" class="ui-btn ui-shadow ui-btn-inline ui-icon-bars ui-btn-icon-left ui-btn-a">设置</a>
       <div data-role="navbar">
           <ul>
@@ -753,6 +735,7 @@ function onClickLi(e)
                  <label for="pw" class="ui-hidden-accessible">密码:</label>
                  <input type="password" name="pass" id="pw" value="" placeholder="密码" data-theme="a">
                  <button type="submit" class="ui-btn ui-corner-all ui-shadow ui-btn-a ui-btn-icon-left ui-icon-check">登录</button>
+                 <a href="reg.html" class="ui-btn ui-shadow ui-corner-all ui-btn-a"  data-transition="flip">注册</a>
             </div>
         </form>
     </div>
