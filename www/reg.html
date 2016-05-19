@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimum-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+<link rel="stylesheet" href="css/jquery.mobile-1.4.5.min.css">
+<link href="css/glDatePicker.default.css" rel="stylesheet">
+<link rel="stylesheet" href="css/scrollbar.css">
+<link rel="stylesheet" href="css/duanzi.css">
+<script type="text/javascript" src="js/jquery-1.8.3.min.js"></script>
+
+<script>
+    $(document).bind('mobileinit',function(){
+        //$.mobile.changePage.defaults.changeHash = false;
+        //$.mobile.hashListeningEnabled = false;
+        $.mobile.pushStateEnabled = false;
+    });
+</script>
+<script src="js/jquery.mobile-1.4.5.min.js"></script>
+</head>
+<body>
+
+	<div data-role="page" id="page-success" data-dom-cache="true"><!-- page-->
+		<div data-role="header" data-theme="a">
+		<h1>每日段子</h1>
+		</div><!-- /header -->
+        <a href="index.html" href="#" data-role="button" data-icon="back">返回</a>
+		<div class="ui-content" role="main">
+		<form action="index.html" method="post">
+			<h2>填写注册信息</h2>
+				<div class="ui-field-contain">
+		         <label for="name">用户名：</label>
+		         <input type="text" name="name" id="name" value="">
+				</div>
+                <div class="ui-field-contain">
+                    <label for="sex">性别：</label>
+                    <fieldset data-role="controlgroup" data-type="horizontal">
+                        <input type="radio" name="radio-choice" id="radio-m">
+                        <label for="radio-m">男</label>
+                        <input type="radio" name="radio-choice" id="radio-f">
+                        <label for="radio-f">女</label>
+                    </fieldset>
+                </div>                
+				<div class="ui-field-contain">
+		         <label for="email">邮箱：</label>
+		         <input type="text" name="email" id="email" value="">
+				</div>
+				<div class="ui-field-contain">
+		         <label for="email">密码：</label>
+		         <input type="password" name="pswd" id="pswd" value="">
+				</div>
+                <div class="ui-field-contain">
+                    <label>每日段子使用条款</label>
+                    <fieldset data-role="controlgroup" data-mini="true">
+                        <label for="checkbox-6">我同意</label>
+                        <input type="checkbox" name="checkbox-6" id="checkbox-6">
+                    </fieldset>
+                </div>
+            <input type="submit" value="提交">
+		</form>
+		</div>
+
+	</div>
+</body>
+</html>
